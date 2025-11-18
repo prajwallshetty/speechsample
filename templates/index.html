@@ -16,26 +16,53 @@
         margin: 0;
       }
       .card {
-        background: #020617;
-        border-radius: 16px;
-        padding: 24px 32px;
-        box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.9);
+        background: radial-gradient(circle at top left, #1d283a, #020617 55%);
+        border-radius: 20px;
+        padding: 28px 32px 24px;
+        box-shadow: 0 30px 80px -24px rgba(15, 23, 42, 0.9);
         width: 100%;
-        max-width: 480px;
+        max-width: 520px;
+        border: 1px solid rgba(148, 163, 184, 0.15);
       }
       h1 {
-        font-size: 1.5rem;
-        margin-bottom: 0.5rem;
+        font-size: 1.6rem;
+        margin-bottom: 0.2rem;
       }
       p {
         margin-top: 0;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.25rem;
         color: #9ca3af;
+        font-size: 0.95rem;
+      }
+      .subtitle {
+        font-size: 0.8rem;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(8, 47, 73, 0.8);
+        color: #bae6fd;
+        font-size: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+      .pill-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #22c55e;
+        box-shadow: 0 0 12px rgba(34, 197, 94, 0.7);
       }
       .controls {
         display: flex;
         gap: 12px;
-        margin-bottom: 1rem;
+        margin: 1.1rem 0 0.75rem;
       }
       button {
         flex: 1;
@@ -67,19 +94,50 @@
         opacity: 0.6;
         cursor: not-allowed;
       }
+      .status-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-top: 0.4rem;
+        margin-bottom: 0.4rem;
+        font-size: 0.85rem;
+        color: #9ca3af;
+      }
       .status {
-        font-size: 0.9rem;
-        margin-bottom: 0.75rem;
+        flex: 1;
         min-height: 1.2em;
       }
-      .emotion {
-        margin-top: 0.75rem;
-        font-size: 1.05rem;
+      .hint {
+        text-align: right;
+        font-size: 0.75rem;
+        color: #6b7280;
       }
-      .emotion span {
-        font-weight: bold;
-        color: #38bdf8;
+      .emotion {
+        margin-top: 0.9rem;
+        font-size: 0.98rem;
+      }
+      .emotion-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(8, 47, 73, 0.7);
+        color: #e0f2fe;
+        font-weight: 500;
         text-transform: capitalize;
+      }
+      .emotion-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #38bdf8;
+        box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
+      }
+      .emotion-placeholder {
+        color: #6b7280;
+        font-size: 0.9rem;
       }
       audio {
         width: 100%;
@@ -89,19 +147,29 @@
   </head>
   <body>
     <div class="card">
+      <div class="subtitle">Real-time voice analysis</div>
       <h1>Voice Emotion Detection</h1>
-      <p>Press "Record" and speak for a few seconds. Then press "Stop" to analyze your emotion.</p>
+      <div class="pill">
+        <span class="pill-dot"></span>
+        <span>Model trained on Angry, Sad, Happy, Neutral</span>
+      </div>
+      <p>Press <strong>Record</strong>, speak for a few seconds, then press <strong>Stop</strong> to let the model estimate your current emotion.</p>
 
       <div class="controls">
         <button id="recordBtn">Record</button>
         <button id="stopBtn" disabled>Stop</button>
       </div>
 
-      <div class="status" id="status"></div>
+      <div class="status-row">
+        <div class="status" id="status"></div>
+        <div class="hint">Tip: try speaking with different tones.</div>
+      </div>
 
       <audio id="playback" controls style="display: none"></audio>
 
-      <div class="emotion" id="emotion"></div>
+      <div class="emotion" id="emotion">
+        <span class="emotion-placeholder">Prediction will appear here after you stop recording.</span>
+      </div>
     </div>
 
     <script src="/static/js/record.js"></script>
