@@ -1,132 +1,96 @@
-#!/usr/bin/python3
-# -*- coding: utf-8 -*-
-
-### General imports ###
-from __future__ import division
-import numpy as np
-import pandas as pd
-import time
-import re
+from flask import Flask, render_template, request, jsonify
 import os
-from collections import Counter
+from datetime import datetime
 
-### Flask imports
-from flask import Flask, render_template, session, request, redirect, flash
-
-### Audio imports ###
-from library.speech_emotion_recognition import *
+import librosa
+import numpy as np
+from tensorflow.keras.models import load_model
 
 
-
-# Flask config
 app = Flask(__name__)
-app.secret_key = b'(\xee\x00\xd4\xce"\xcf\xe8@\r\xde\xfc\xbdJ\x08W'
-app.config['UPLOAD_FOLDER'] = '/Upload'
 
-################################################################################
-################################## INDEX #######################################
-################################################################################
 
-# Home page
-@app.route('/', methods=['GET'])
+EMOTION_LABELS = [
+    "female_angry",
+    "female_calm",
+    "female_fearful",
+    "female_happy",
+    "female_sad",
+    "male_angry",
+    "male_calm",
+    "male_fearful",
+    "male_happy",
+    "male_sad",
+]
+
+
+MODEL_PATH = os.path.join(app.root_path, "model", "Emotion_Voice_Detection_Model.h5")
+MODEL = load_model(MODEL_PATH)
+
+
+def extract_features(file_path: str, max_pad_len: int = 174) -> np.ndarray:
+    """Extract MFCC features similar to common SER setups.
+
+    NOTE: This is a best-guess pipeline. If you trained with a different
+    feature shape (e.g., different n_mfcc or time steps), we may need to
+    adjust n_mfcc or max_pad_len.
+    """
+
+    # Load audio (mono) with a fixed sample rate for consistency
+    y, sr = librosa.load(file_path, sr=22050, mono=True)
+
+    # Compute MFCCs
+    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
+
+    # Pad or truncate to a fixed length on the time axis
+    if mfcc.shape[1] < max_pad_len:
+        pad_width = max_pad_len - mfcc.shape[1]
+        mfcc = np.pad(mfcc, pad_width=((0, 0), (0, pad_width)), mode="constant")
+    else:
+        mfcc = mfcc[:, :max_pad_len]
+
+    return mfcc
+
+
+@app.route("/")
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
 
-################################################################################
-################################## RULES #######################################
-################################################################################
 
-# Rules of the game
-@app.route('/rules')
-def rules():
-    return render_template('rules.html')
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    if "audio" not in request.files:
+        return jsonify({"success": False, "error": "No audio file provided"}), 400
 
-################################################################################
-############################### AUDIO INTERVIEW ################################
-################################################################################
+    audio_file = request.files["audio"]
+    if audio_file.filename == "":
+        return jsonify({"success": False, "error": "Empty filename"}), 400
 
-# Audio Index
-@app.route('/audio_index', methods=['POST'])
-def audio_index():
+    uploads_dir = os.path.join(app.root_path, "uploads")
+    os.makedirs(uploads_dir, exist_ok=True)
 
-    # Flash message
-    flash("After pressing the button above, you will have 15sec to answer the question.")
-    
-    return render_template('audio.html', display_button=False)
+    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
+    filename = f"recording_{timestamp}.webm"
+    save_path = os.path.join(uploads_dir, filename)
+    audio_file.save(save_path)
 
-# Audio Recording
-@app.route('/audio_recording', methods=("POST", "GET"))
-def audio_recording():
-
-    # Instanciate new SpeechEmotionRecognition object
-    SER = speechEmotionRecognition()
-
-    # Voice Recording
-    rec_duration = 16 # in sec
-    rec_sub_dir = os.path.join('tmp','voice_recording.wav')
     try:
-        SER.voice_recording(rec_sub_dir, duration=rec_duration)
-    except Exception:
-        flash("Audio recording is not available in this deployment environment.")
-        return render_template('audio.html', display_button=False)
+        # Extract features from recorded audio
+        features = extract_features(save_path)
+        # Reshape for model: (batch, features, time, channels)
+        features = features[np.newaxis, ..., np.newaxis]
 
-    # Send Flash message
-    flash("The recording is over! You now have the opportunity to do an analysis of your emotions. If you wish, you can also choose to record yourself again.")
+        # Predict probabilities and pick the highest
+        probs = MODEL.predict(features)
+        pred_index = int(np.argmax(probs, axis=1)[0])
+        emotion = EMOTION_LABELS[pred_index] if 0 <= pred_index < len(EMOTION_LABELS) else "unknown"
+    except Exception as e:
+        # Fallback if anything goes wrong during prediction
+        return jsonify({"success": False, "error": f"Prediction error: {str(e)}"}), 500
 
-    return render_template('audio.html', display_button=True)
-
-
-# Audio Emotion Analysis
-@app.route('/audio_dash', methods=("POST", "GET"))
-def audio_dash():
-
-    # Sub dir to speech emotion recognition model
-    model_sub_dir = os.path.join('Models', 'audio.hdf5')
-
-    # Instanciate new SpeechEmotionRecognition object
-    SER = speechEmotionRecognition(model_sub_dir)
-
-    # Voice Record sub dir
-    rec_sub_dir = os.path.join('tmp','voice_recording.wav')
-
-    # Predict emotion in voice at each time step
-    step = 1 # in sec
-    sample_rate = 16000 # in kHz
-    emotions, timestamp = SER.predict_emotion_from_file(rec_sub_dir, chunk_step=step*sample_rate)
-
-    # Export predicted emotions to .txt format
-    SER.prediction_to_csv(emotions, os.path.join("static/js/db", "audio_emotions.txt"), mode='w')
-    SER.prediction_to_csv(emotions, os.path.join("static/js/db", "audio_emotions_other.txt"), mode='a')
-
-    # Get most common emotion during the interview
-    major_emotion = max(set(emotions), key=emotions.count)
-
-    # Calculate emotion distribution
-    emotion_dist = [int(100 * emotions.count(emotion) / len(emotions)) for emotion in SER._emotion.values()]
-
-    # Export emotion distribution to .csv format for D3JS
-    df = pd.DataFrame(emotion_dist, index=SER._emotion.values(), columns=['VALUE']).rename_axis('EMOTION')
-    df.to_csv(os.path.join('static/js/db','audio_emotions_dist.txt'), sep=',')
-
-    # Get most common emotion of other candidates
-    df_other = pd.read_csv(os.path.join("static/js/db", "audio_emotions_other.txt"), sep=",")
-
-    # Get most common emotion during the interview for other candidates
-    major_emotion_other = df_other.EMOTION.mode()[0]
-
-    # Calculate emotion distribution for other candidates
-    emotion_dist_other = [int(100 * len(df_other[df_other.EMOTION==emotion]) / len(df_other)) for emotion in SER._emotion.values()]
-
-    # Export emotion distribution to .csv format for D3JS
-    df_other = pd.DataFrame(emotion_dist_other, index=SER._emotion.values(), columns=['VALUE']).rename_axis('EMOTION')
-    df_other.to_csv(os.path.join('static/js/db','audio_emotions_dist_other.txt'), sep=',')
-
-    # Sleep
-    time.sleep(0.5)
-
-    return render_template('audio_dash.html', emo=major_emotion, emo_other=major_emotion_other, prob=emotion_dist, prob_other=emotion_dist_other)
+    return jsonify({"success": True, "emotion": emotion, "class_index": pred_index})
 
 
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
 
-if __name__ == '__main__':
-    app.run(debug=True)

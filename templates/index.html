@@ -1,67 +1,110 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
   <head>
-    <meta charset="utf-8">
-    <link rel="stylesheet" type="text/css" href="/static/CSS/style.css">
-    <title>Emotion Recognition</title>
-
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice Emotion Detection</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #0f172a;
+        color: #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+      }
+      .card {
+        background: #020617;
+        border-radius: 16px;
+        padding: 24px 32px;
+        box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.9);
+        width: 100%;
+        max-width: 480px;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+      p {
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        color: #9ca3af;
+      }
+      .controls {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 1rem;
+      }
+      button {
+        flex: 1;
+        border: none;
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: background 0.15s ease, transform 0.05s ease;
+      }
+      button:active {
+        transform: translateY(1px);
+      }
+      #recordBtn {
+        background: #22c55e;
+        color: #022c22;
+      }
+      #recordBtn[disabled] {
+        background: #16a34a;
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      #stopBtn {
+        background: #ef4444;
+        color: #fef2f2;
+      }
+      #stopBtn[disabled] {
+        background: #b91c1c;
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .status {
+        font-size: 0.9rem;
+        margin-bottom: 0.75rem;
+        min-height: 1.2em;
+      }
+      .emotion {
+        margin-top: 0.75rem;
+        font-size: 1.05rem;
+      }
+      .emotion span {
+        font-weight: bold;
+        color: #38bdf8;
+        text-transform: capitalize;
+      }
+      audio {
+        width: 100%;
+        margin-top: 0.75rem;
+      }
+    </style>
   </head>
   <body>
-    <a href="/">
-      <img src = "/static/CSS/images/head.png" width="100%">
-    </a>
-    <br>
+    <div class="card">
+      <h1>Voice Emotion Detection</h1>
+      <p>Press "Record" and speak for a few seconds. Then press "Stop" to analyze your emotion.</p>
 
- {% block body %}
-
-  <!--
-  Audio emotion recognition presentation
-  -->
-  <div class="row">
-      <div class="column_home" id="left-col" align="center">
-        <img src = "/static/CSS/images/audio.png" width="100%">
-        <div style="width:70%; text-align:justify; align-content:center; display:inline-block;">
-          <p> Use the audio emotion recognition tool and get feedback on how our algorithm interprets your vocal emotions.</p>
-          <br>
-          <p> You will be provided a feedback on your vocal emotions such as :
-          <ul>
-            <li>Anger</li>
-            <li>Happiness</li>
-            <li>Fear</li>
-            <li>Sadness</li>
-            <li>Surprise</li>
-            <li>Disgust</li>
-          </ul>
-          <br>
-          <br>
-        </div>
+      <div class="controls">
+        <button id="recordBtn">Record</button>
+        <button id="stopBtn" disabled>Stop</button>
       </div>
-  </div>
 
+      <div class="status" id="status"></div>
 
-  <div class="row">
-     <!--
-     Audio emotion button
-     -->
-     <div class="column_home" id="left-col" align="center">
-         <form action="/audio_index" method="post" align="center">
-         <input type="submit" name="audio_index" value="Start Voice Emotion Test" align="center">
-       </form>
-     </div>
-  </div>
+      <audio id="playback" controls style="display: none"></audio>
 
-<br>
-<br>
-<br>
+      <div class="emotion" id="emotion"></div>
+    </div>
 
-      {# Fin du bloc "body" #}
-    {% endblock %}
-
-    <br>
-    <br>
-    <a href="/rules">How does it work ?</a>
-    <br>
-    <br>
-
+    <script src="/static/js/record.js"></script>
   </body>
-</html>
+  </html>
+
