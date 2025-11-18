@@ -4,7 +4,10 @@ import os
 import numpy as np
 
 ## Audio Preprocessing ##
-import pyaudio
+try:
+    import pyaudio
+except ImportError:
+    pyaudio = None
 import wave
 import librosa
 from scipy.stats import zscore
@@ -41,6 +44,9 @@ class speechEmotionRecognition:
     Voice recording function
     '''
     def voice_recording(self, filename, duration=5, sample_rate=16000, chunk=1024, channels=1):
+
+        if pyaudio is None:
+            raise RuntimeError("PyAudio is required for voice recording but is not installed in this environment.")
 
         # Start the audio recording stream
         p = pyaudio.PyAudio()

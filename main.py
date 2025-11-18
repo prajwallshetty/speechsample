@@ -210,7 +210,11 @@ def audio_recording():
     # Voice Recording
     rec_duration = 16 # in sec
     rec_sub_dir = os.path.join('tmp','voice_recording.wav')
-    SER.voice_recording(rec_sub_dir, duration=rec_duration)
+    try:
+        SER.voice_recording(rec_sub_dir, duration=rec_duration)
+    except Exception:
+        flash("Audio recording is not available in this deployment environment.")
+        return render_template('audio.html', display_button=False)
 
     # Send Flash message
     flash("The recording is over! You now have the opportunity to do an analysis of your emotions. If you wish, you can also choose to record yourself again.")
