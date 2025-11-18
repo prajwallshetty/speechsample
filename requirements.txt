@@ -10,7 +10,6 @@ scipy
 tensorflow
 imutils
 tika
-wave
 nltk
 gensim
 seaborn
