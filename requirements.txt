@@ -2,4 +2,4 @@ flask
 librosa
 soundfile
 numpy
-tensorflow
+tensorflow-cpu
